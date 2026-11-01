@@ -52,9 +52,17 @@ $('clear').onclick=()=>{text.value='';dl.disabled=true;say('');text.focus()};
 dl.onclick=async()=>{
   let n=(name.value.trim()||'myfile').replace(/[\\/:*?"<>|]+/g,'_').replace(/\.txt$/i,'');
   try{
-    const d=await claude.use('downloads');
-    if(!d){say('Downloads unavailable in this view.',true);return}
-    await d.save({filename:n+'.txt',data:text.value});
+    const d=(typeof claude!=='undefined'&&claude.use)?await claude.use('downloads'):null;
+    if(d){
+      await d.save({filename:n+'.txt',data:text.value});
+    }else{
+      const blob=new Blob(['\ufeff'+text.value],{type:'text/plain;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=n+'.txt';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
     say('Saved.');
   }catch(e){
     if(e&&e.code==='declined')say('Cancelled.');
